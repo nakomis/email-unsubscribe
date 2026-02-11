@@ -4,6 +4,7 @@
 node_modules
 cdk.out
 dist
+**/secrets.json
 
 # CDK asset staging directory
 .cdk.staging

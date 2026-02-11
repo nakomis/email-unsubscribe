@@ -4,7 +4,7 @@ import * as jwt from 'jsonwebtoken';
 const ses = new SESv2Client({});
 
 const EMAIL_DOMAINS = ['nakomis.com', 'nakom.is', 'nakomis.lgbt', 'nakomis.co.uk'];
-const JWT_SECRET = process.env.JWT_SECRET || 'unsub-poc-secret-change-me';
+const JWT_SECRET = process.env.JWT_SECRET || 'unsub-poc-secret-change-me-3';
 const SENDER_EMAIL = process.env.SENDER_EMAIL || 'noreply@sandbox.nakomis.com';
 const API_DOMAIN = process.env.API_DOMAIN || 'api.unsubscribe.sandbox.nakomis.com';
 const WEB_DOMAIN = process.env.WEB_DOMAIN || 'unsubscribe.sandbox.nakomis.com';

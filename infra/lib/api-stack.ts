@@ -12,6 +12,7 @@ import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import { Construct } from 'constructs';
 import * as path from 'path';
+import secrets from './secrets.json';
 
 export interface ApiStackProps extends cdk.StackProps {
     apiDomainName: string;
@@ -27,7 +28,7 @@ export class ApiStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props: ApiStackProps) {
         super(scope, id, props);
 
-        const jwtSecret = 'unsub-poc-secret-change-me'; // In production, use Secrets Manager
+        const jwtSecret = secrets.jwtSecret || 'unsub-poc-secret-change-me1';
 
         // Look up the hosted zone for sandbox.nakomis.com
         const hostedZone = route53.HostedZone.fromLookup(this, 'HostedZoneLookup', {

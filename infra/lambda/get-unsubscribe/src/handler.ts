@@ -5,7 +5,7 @@ import * as jwt from 'jsonwebtoken';
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
-const JWT_SECRET = process.env.JWT_SECRET || 'unsub-poc-secret-change-me';
+const JWT_SECRET = process.env.JWT_SECRET || 'unsub-poc-secret-change-me-1';
 const TABLE_NAME = process.env.TABLE_NAME || 'email-unsubscribes';
 
 interface TokenPayload {
