@@ -1,6 +1,6 @@
 # Email Unsubscribe POC
 
-A proof-of-concept implementation demonstrating RFC 8058 compliant email unsubscribe functionality, including one-click unsubscribe support for Gmail and Yahoo.
+A fully vibe-coded (claude-opus-4-5-20251101-v) proof-of-concept implementation demonstrating RFC 8058 compliant email unsubscribe functionality, including one-click unsubscribe support for Gmail and Yahoo.
 
 ## Features
 
