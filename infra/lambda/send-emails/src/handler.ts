@@ -8,6 +8,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'unsub-poc-secret-change-me';
 const SENDER_EMAIL = process.env.SENDER_EMAIL || 'noreply@sandbox.nakomis.com';
 const API_DOMAIN = process.env.API_DOMAIN || 'api.unsubscribe.sandbox.nakomis.com';
 const WEB_DOMAIN = process.env.WEB_DOMAIN || 'unsubscribe.sandbox.nakomis.com';
+const WOLF_IMAGE_URL = `https://${WEB_DOMAIN}/wolf.png`;
+const PROJECT_URL = 'http://nakom.is/email';
 
 function generateRandomString(length: number): string {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -35,6 +37,7 @@ function generateEmailAddress(): string {
 interface SendEmailsRequest {
     count: number;
     subject?: string;
+    additionalEmails?: string[];
 }
 
 interface SendEmailsResponse {
@@ -44,29 +47,13 @@ interface SendEmailsResponse {
     errors: string[];
 }
 
-export async function handler(event: any): Promise<any> {
-    console.log('Event:', JSON.stringify(event, null, 2));
+async function sendEmail(toEmail: string, subject: string): Promise<{ success: boolean; error?: string }> {
+    const token = generateToken(toEmail);
+    const unsubscribeUrl = `https://${API_DOMAIN}/unsubscribe?token=${token}`;
+    const webUnsubscribeUrl = `https://${WEB_DOMAIN}/unsubscribe?token=${token}`;
+    const mailtoUnsubscribe = `mailto:unsubscribe@sandbox.nakomis.com?subject=unsubscribe&body=token:${token}`;
 
-    try {
-        const body: SendEmailsRequest = typeof event.body === 'string'
-            ? JSON.parse(event.body)
-            : event.body || {};
-
-        const count = Math.min(Math.max(body.count || 1, 1), 50); // Limit 1-50
-        const subject = body.subject || 'Test Email - Unsubscribe POC';
-
-        const sentEmails: string[] = [];
-        const errors: string[] = [];
-
-        for (let i = 0; i < count; i++) {
-            const toEmail = generateEmailAddress();
-            const token = generateToken(toEmail);
-
-            const unsubscribeUrl = `https://${API_DOMAIN}/unsubscribe?token=${token}`;
-            const webUnsubscribeUrl = `https://${WEB_DOMAIN}/unsubscribe?token=${token}`;
-            const mailtoUnsubscribe = `mailto:unsubscribe@sandbox.nakomis.com?subject=unsubscribe&body=token:${token}`;
-
-            const htmlBody = `
+    const htmlBody = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -74,11 +61,21 @@ export async function handler(event: any): Promise<any> {
     <title>${subject}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <h2 style="color: #1f2937;">Email Unsubscribe POC</h2>
+    <div style="text-align: center; margin-bottom: 24px;">
+        <a href="${PROJECT_URL}">
+            <img src="${WOLF_IMAGE_URL}" alt="Nakomis" style="width: 64px; height: 64px;" />
+        </a>
+    </div>
+
+    <h2 style="color: #1f2937; text-align: center;">Email Unsubscribe POC</h2>
 
     <p>This is a test email for the unsubscribe POC.</p>
 
     <p>Sent to: <strong>${toEmail}</strong></p>
+
+    <p style="margin: 16px 0;">
+        Learn more about this project at <a href="${PROJECT_URL}" style="color: #2563eb;">${PROJECT_URL}</a>
+    </p>
 
     <div style="background: #fee2e2; padding: 16px; border: 1px solid #dc2626; border-radius: 8px; margin: 20px 0;">
         <strong style="color: #dc2626;">Important:</strong> This email should only be received by Martin Harris.
@@ -100,12 +97,14 @@ export async function handler(event: any): Promise<any> {
 </body>
 </html>`;
 
-            const textBody = `
+    const textBody = `
 Email Unsubscribe POC
 
 This is a test email for the unsubscribe POC.
 
 Sent to: ${toEmail}
+
+Learn more about this project at ${PROJECT_URL}
 
 IMPORTANT: This email should only be received by Martin Harris.
 If you are not Martin Harris, please email martin@nakomis.com and it will be rectified immediately.
@@ -117,42 +116,81 @@ Unsubscribe: ${webUnsubscribeUrl}
 Nakomis Labs, 1 Royal Mile, Edinburgh, UK
 `;
 
-            try {
-                await ses.send(new SendEmailCommand({
-                    FromEmailAddress: SENDER_EMAIL,
-                    Destination: {
-                        ToAddresses: [toEmail],
+    try {
+        await ses.send(new SendEmailCommand({
+            FromEmailAddress: SENDER_EMAIL,
+            Destination: {
+                ToAddresses: [toEmail],
+            },
+            Content: {
+                Simple: {
+                    Subject: { Data: subject, Charset: 'UTF-8' },
+                    Body: {
+                        Html: { Data: htmlBody, Charset: 'UTF-8' },
+                        Text: { Data: textBody, Charset: 'UTF-8' },
                     },
-                    Content: {
-                        Simple: {
-                            Subject: { Data: subject, Charset: 'UTF-8' },
-                            Body: {
-                                Html: { Data: htmlBody, Charset: 'UTF-8' },
-                                Text: { Data: textBody, Charset: 'UTF-8' },
-                            },
-                            Headers: [
-                                {
-                                    Name: 'List-Unsubscribe',
-                                    Value: `<${unsubscribeUrl}>, <${mailtoUnsubscribe}>`,
-                                },
-                                {
-                                    Name: 'List-Unsubscribe-Post',
-                                    Value: 'List-Unsubscribe=One-Click',
-                                },
-                            ],
+                    Headers: [
+                        {
+                            Name: 'List-Unsubscribe',
+                            Value: `<${unsubscribeUrl}>, <${mailtoUnsubscribe}>`,
                         },
-                    },
-                    EmailTags: [
-                        { Name: 'Project', Value: 'email-unsubscribe' },
+                        {
+                            Name: 'List-Unsubscribe-Post',
+                            Value: 'List-Unsubscribe=One-Click',
+                        },
                     ],
-                }));
+                },
+            },
+            EmailTags: [
+                { Name: 'Project', Value: 'email-unsubscribe' },
+            ],
+        }));
 
+        console.log(`Sent email to ${toEmail}`);
+        return { success: true };
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(`Failed to send to ${toEmail}:`, error);
+        return { success: false, error: errorMessage };
+    }
+}
+
+export async function handler(event: any): Promise<any> {
+    console.log('Event:', JSON.stringify(event, null, 2));
+
+    try {
+        const body: SendEmailsRequest = typeof event.body === 'string'
+            ? JSON.parse(event.body)
+            : event.body || {};
+
+        const count = Math.min(Math.max(body.count || 0, 0), 50); // Limit 0-50
+        const subject = body.subject || 'Test Email - Unsubscribe POC';
+        const additionalEmails = body.additionalEmails || [];
+
+        const sentEmails: string[] = [];
+        const errors: string[] = [];
+
+        // Send to auto-generated emails
+        for (let i = 0; i < count; i++) {
+            const toEmail = generateEmailAddress();
+            const result = await sendEmail(toEmail, subject);
+            if (result.success) {
                 sentEmails.push(toEmail);
-                console.log(`Sent email to ${toEmail}`);
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                errors.push(`Failed to send to ${toEmail}: ${errorMessage}`);
-                console.error(`Failed to send to ${toEmail}:`, error);
+            } else {
+                errors.push(`Failed to send to ${toEmail}: ${result.error}`);
+            }
+        }
+
+        // Send to additional emails
+        for (const toEmail of additionalEmails) {
+            const trimmedEmail = toEmail.trim();
+            if (trimmedEmail && trimmedEmail.includes('@')) {
+                const result = await sendEmail(trimmedEmail, subject);
+                if (result.success) {
+                    sentEmails.push(trimmedEmail);
+                } else {
+                    errors.push(`Failed to send to ${trimmedEmail}: ${result.error}`);
+                }
             }
         }
 
