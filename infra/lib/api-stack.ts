@@ -50,7 +50,7 @@ export class ApiStack extends cdk.Stack {
             memorySize: 256,
             environment: {
                 JWT_SECRET: jwtSecret,
-                SENDER_EMAIL: 'noreply@sandbox.nakomis.com',
+                SENDER_EMAIL: '"Nakomis Emailer" <noreply@sandbox.nakomis.com>',
                 API_DOMAIN: props.apiDomainName,
                 WEB_DOMAIN: props.webDomainName,
             },
