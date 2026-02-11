@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Unsubscribe POC - Implementation Plan</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-600: #4b5563;
+            --gray-800: #1f2937;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--gray-800);
+            background: var(--gray-50);
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-dark);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        h3 {
+            font-size: 1.2rem;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--gray-600);
+        }
+
+        .subtitle {
+            color: var(--gray-600);
+            margin-bottom: 2rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            color: #1e40af;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            border: 1px solid #22c55e;
+            color: #166534;
+        }
+
+        .card {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        ul, ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: var(--gray-100);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--gray-800);
+            color: #e5e7eb;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        th {
+            background: var(--gray-100);
+            font-weight: 600;
+        }
+
+        .architecture-diagram {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            font-family: 'SF Mono', Monaco, monospace;
+            white-space: pre;
+            overflow-x: auto;
+            line-height: 1.4;
+            font-size: 0.85rem;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .checklist {
+            list-style: none;
+            margin-left: 0;
+        }
+
+        .checklist li {
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .checklist li::before {
+            content: "[ ]";
+            position: absolute;
+            left: 0;
+            font-family: monospace;
+        }
+
+        .phase {
+            border-left: 4px solid var(--primary);
+            padding-left: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .phase-number {
+            display: inline-block;
+            width: 2rem;
+            height: 2rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 2rem;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Email Unsubscribe POC</h1>
+        <p class="subtitle">Implementation Plan for Bulk Email with List-Unsubscribe Support</p>
+
+        <h2>Project Overview</h2>
+
+        <div class="card">
+            <div class="card-header">Goal</div>
+            <p>Build a POC web application that:</p>
+            <ol>
+                <li>Allows an authenticated user to send bulk test emails</li>
+                <li>Includes proper <code>List-Unsubscribe</code> and <code>List-Unsubscribe-Post</code> headers</li>
+                <li>Provides unauthenticated unsubscribe pages</li>
+                <li>Tracks unsubscribes in DynamoDB</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Domain &amp; Email Configuration</div>
+            <table>
+                <tr>
+                    <th>Item</th>
+                    <th>Value</th>
+                </tr>
+                <tr>
+                    <td>Web Domain</td>
+                    <td><code>unsubscribe.sandbox.nakomis.com</code></td>
+                </tr>
+                <tr>
+                    <td>Auth Domain</td>
+                    <td><code>auth.unsubscribe.sandbox.nakomis.com</code></td>
+                </tr>
+                <tr>
+                    <td>API Domain</td>
+                    <td><code>api.unsubscribe.sandbox.nakomis.com</code></td>
+                </tr>
+                <tr>
+                    <td>Email Domains</td>
+                    <td><code>@nakomis.com</code>, <code>@nakom.is</code>, <code>@nakomis.lgbt</code>, <code>@nakomis.co.uk</code></td>
+                </tr>
+                <tr>
+                    <td>Email Prefix</td>
+                    <td><code>uns</code> (e.g., <code>uns8f7d9a@nakomis.lgbt</code>)</td>
+                </tr>
+            </table>
+        </div>
+
+        <h2>Architecture</h2>
+
+        <div class="architecture-diagram">
+                         unsubscribe.sandbox.nakomis.com
+                                      |
+                                 CloudFront
+                                      |
+                  +-------------------+-------------------+
+                  |                                       |
+             /api/* paths                          /* (default)
+                  |                                       |
+            API Gateway                              S3 Bucket
+                  |                                  (React App)
+      +-----------+-----------+
+      |           |           |
+ /send-emails  /unsubscribe  /unsubscribe
+    (POST)       (GET)         (POST)
+      |           |              |
+ [Lambda]     [Lambda]       [Lambda]
+ unsubscribe- unsubscribe-   unsubscribe-
+ send-emails  get            post
+      |           |              |
+      |     +-----+-----+--------+
+      |     |           |
+     SES  DynamoDB   DynamoDB
+      |   (read)     (write)
+      |
+ Sends to:
+ uns*@nakomis.com
+ uns*@nakom.is
+ uns*@nakomis.lgbt
+ uns*@nakomis.co.uk
+
+
+ Authentication:
+ - /send-emails: Requires Cognito JWT
+ - /unsubscribe: No auth (token-based verification)</div>
+
+        <h2>Project Structure</h2>
+
+        <pre><code>email-unsubscribe/
++-- PLAN.html              # This file
++-- README.md              # Project documentation
++-- infra/                 # AWS CDK infrastructure
+|   +-- bin/
+|   |   +-- infra.ts       # CDK app entry point
+|   +-- lib/
+|   |   +-- certificate-stack.ts    # ACM certs (us-east-1)
+|   |   +-- cloudfront-stack.ts     # CloudFront + S3
+|   |   +-- cognito-stack.ts        # User Pool + Identity Pool
+|   |   +-- api-stack.ts            # API Gateway + Lambdas
+|   |   +-- dynamodb-stack.ts       # Unsubscribe table
+|   |   +-- ses-stack.ts            # SES domain identity
+|   +-- lambda/
+|   |   +-- send-emails/
+|   |   |   +-- handler.ts          # Send bulk emails
+|   |   +-- get-unsubscribe/
+|   |   |   +-- handler.ts          # Landing page data
+|   |   +-- post-unsubscribe/
+|   |       +-- handler.ts          # Process unsubscribe
+|   +-- package.json
+|   +-- tsconfig.json
+|
++-- web/                   # React web application
+    +-- public/
+    |   +-- index.html
+    +-- src/
+    |   +-- components/
+    |   |   +-- App.tsx
+    |   |   +-- SendEmails.tsx      # Authenticated bulk send
+    |   |   +-- Unsubscribe.tsx     # Public unsubscribe page
+    |   |   +-- Confirmation.tsx    # Unsubscribe confirmation
+    |   +-- config/
+    |   |   +-- config.json.template
+    |   |   +-- config.json
+    |   +-- index.tsx
+    +-- scripts/
+    |   +-- deploy.sh
+    |   +-- set-config.sh
+    +-- package.json</code></pre>
+
+        <h2>SES Setup</h2>
+
+        <div class="alert alert-warning">
+            <strong>Action Required:</strong> We need to set up SES domain identity for at least one nakomis domain. The current account doesn't have any nakomis domains verified in SES.
+        </div>
+
+        <div class="card">
+            <div class="card-header">SES Domain Identity Setup</div>
+            <p>We'll create an SES domain identity via CDK. This requires:</p>
+            <ol>
+                <li>Creating the domain identity in SES</li>
+                <li>Adding DKIM DNS records to verify ownership</li>
+                <li>Waiting for verification (usually quick if DNS is in same account)</li>
+            </ol>
+            <p style="margin-top: 1rem;"><strong>Recommended:</strong> Use <code>sandbox.nakomis.com</code> as the sending domain since the hosted zone is already in this account. Emails would come from <code>noreply@sandbox.nakomis.com</code>.</p>
+        </div>
+
+        <h2>CDK Stacks</h2>
+
+        <div class="two-column">
+            <div class="card">
+                <div class="card-header">UnsubCertificateStack</div>
+                <p><strong>Region:</strong> us-east-1</p>
+                <ul>
+                    <li>ACM certificate for <code>unsubscribe.sandbox.nakomis.com</code></li>
+                    <li>ACM certificate for <code>auth.unsubscribe.sandbox.nakomis.com</code></li>
+                    <li>ACM certificate for <code>api.unsubscribe.sandbox.nakomis.com</code></li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header">UnsubCloudfrontStack</div>
+                <p><strong>Region:</strong> eu-west-2</p>
+                <ul>
+                    <li>Private S3 bucket for web assets</li>
+                    <li>CloudFront distribution with OAC</li>
+                    <li>Route53 A/AAAA records</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header">UnsubCognitoStack</div>
+                <p><strong>Region:</strong> eu-west-2</p>
+                <ul>
+                    <li>User Pool (self-signup disabled)</li>
+                    <li>User Pool Client</li>
+                    <li>Custom auth domain</li>
+                    <li>Pre-created user</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header">UnsubApiStack</div>
+                <p><strong>Region:</strong> eu-west-2</p>
+                <ul>
+                    <li>API Gateway HTTP API</li>
+                    <li>Lambda: SendEmails (auth required)</li>
+                    <li>Lambda: GetUnsubscribe (no auth)</li>
+                    <li>Lambda: PostUnsubscribe (no auth)</li>
+                    <li>Cognito JWT authorizer</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header">UnsubDynamoDBStack</div>
+                <p><strong>Region:</strong> eu-west-2</p>
+                <ul>
+                    <li>Table: <code>email-unsubscribes</code></li>
+                    <li>Partition key: <code>email</code> (String)</li>
+                    <li>Attributes: unsubscribedAt, source</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header">UnsubSesStack</div>
+                <p><strong>Region:</strong> eu-west-2</p>
+                <ul>
+                    <li>SES Domain Identity</li>
+                    <li>DKIM configuration</li>
+                    <li>DNS records via Route53</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>Lambda Functions</h2>
+
+        <div class="alert alert-info">
+            <strong>Resource Tagging:</strong> All taggable resources will include the tag <code>MH-Project: email-unsubscribe</code> for easy identification and cost tracking.
+        </div>
+
+        <div class="card">
+            <div class="card-header">unsubscribe-send-emails Lambda</div>
+            <p><strong>Trigger:</strong> <code>POST /api/send-emails</code> (Cognito auth required)</p>
+            <p><strong>Input:</strong></p>
+            <pre><code>{
+  "count": 10,
+  "subject": "Test Email - Unsubscribe POC"
+}</code></pre>
+            <p><strong>Behavior:</strong></p>
+            <ol>
+                <li>Generates <code>count</code> random email addresses with <code>uns</code> prefix across the 4 domains</li>
+                <li>For each email, generates a signed unsubscribe token (JWT)</li>
+                <li>Sends email via SES with:
+                    <ul>
+                        <li><code>List-Unsubscribe</code> header (URL + mailto)</li>
+                        <li><code>List-Unsubscribe-Post: List-Unsubscribe=One-Click</code></li>
+                        <li>HTML body with manual unsubscribe link</li>
+                        <li>Warning text about misdirected emails</li>
+                    </ul>
+                </li>
+                <li>Returns summary of sent emails</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <div class="card-header">unsubscribe-get Lambda</div>
+            <p><strong>Trigger:</strong> <code>GET /api/unsubscribe?token=...</code> (no auth)</p>
+            <p><strong>Behavior:</strong></p>
+            <ol>
+                <li>Validates and decodes the JWT token</li>
+                <li>Extracts email address from token</li>
+                <li>Checks DynamoDB if already unsubscribed</li>
+                <li>Returns JSON with email (partially masked) and status</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <div class="card-header">unsubscribe-post Lambda</div>
+            <p><strong>Trigger:</strong> <code>POST /api/unsubscribe?token=...</code> (no auth)</p>
+            <p><strong>Behavior:</strong></p>
+            <ol>
+                <li>Validates token</li>
+                <li>Handles both:
+                    <ul>
+                        <li><strong>One-Click:</strong> Request body contains <code>List-Unsubscribe=One-Click</code></li>
+                        <li><strong>Manual:</strong> Form submission from web page</li>
+                    </ul>
+                </li>
+                <li>Writes to DynamoDB: <code>{ email, unsubscribedAt, source }</code></li>
+                <li>Returns 200 OK</li>
+            </ol>
+        </div>
+
+        <h2>Email Format</h2>
+
+        <div class="card">
+            <div class="card-header">Email Headers</div>
+            <pre><code>From: noreply@sandbox.nakomis.com
+To: uns8f7d9a@nakomis.lgbt
+Subject: Test Email - Unsubscribe POC
+List-Unsubscribe: &lt;https://api.unsubscribe.sandbox.nakomis.com/unsubscribe?token=eyJ...&gt;,
+                  &lt;mailto:unsubscribe@sandbox.nakomis.com?subject=unsubscribe&amp;body=token:eyJ...&gt;
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Content-Type: text/html; charset=UTF-8</code></pre>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Email Body</div>
+            <pre><code>&lt;html&gt;
+&lt;body&gt;
+  &lt;h2&gt;Email Unsubscribe POC&lt;/h2&gt;
+
+  &lt;p&gt;This is a test email for the unsubscribe POC.&lt;/p&gt;
+
+  &lt;div style="background: #fee2e2; padding: 1rem; border: 1px solid #dc2626; margin: 1rem 0;"&gt;
+    &lt;strong&gt;Important:&lt;/strong&gt; This email should only be received by Martin Harris.
+    If you are not Martin Harris, please email
+    &lt;a href="mailto:martin@nakomis.com"&gt;martin@nakomis.com&lt;/a&gt;
+    and it will be rectified immediately.
+  &lt;/div&gt;
+
+  &lt;hr&gt;
+
+  &lt;p style="font-size: 0.9em; color: #666;"&gt;
+    You're receiving this because you opted into the Unsubscribe POC test.
+    &lt;br&gt;
+    &lt;a href="https://unsubscribe.sandbox.nakomis.com/unsubscribe?token=eyJ..."&gt;Unsubscribe&lt;/a&gt;
+  &lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+        </div>
+
+        <h2>Web Application</h2>
+
+        <div class="two-column">
+            <div class="card">
+                <div class="card-header">Authenticated Section</div>
+                <p><strong>Route:</strong> <code>/</code> (requires Cognito login)</p>
+                <ul>
+                    <li>Simple form to specify number of emails</li>
+                    <li>"Send Emails" button</li>
+                    <li>Results display showing sent addresses</li>
+                    <li>View unsubscribe list</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Public Unsubscribe Section</div>
+                <p><strong>Route:</strong> <code>/unsubscribe?token=...</code> (no auth)</p>
+                <ul>
+                    <li>Landing page shows masked email</li>
+                    <li>"Unsubscribe" button</li>
+                    <li>Confirmation page after success</li>
+                    <li>Re-subscribe option</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>Token Design</h2>
+
+        <div class="card">
+            <div class="card-header">JWT Token Structure</div>
+            <pre><code>{
+  "sub": "uns8f7d9a@nakomis.lgbt",  // email address
+  "iat": 1707667200,                 // issued at
+  "iss": "unsubscribe-poc"           // issuer
+}
+
+// Signed with HMAC-SHA256 using a secret stored in environment variable
+// No expiration - unsubscribe tokens should work indefinitely</code></pre>
+        </div>
+
+        <h2>Implementation Phases</h2>
+
+        <div class="phase">
+            <h3><span class="phase-number">1</span> Infrastructure Setup</h3>
+            <ul class="checklist">
+                <li>Create project structure (<code>infra/</code> and <code>web/</code> folders)</li>
+                <li>Initialize CDK project with TypeScript</li>
+                <li>Create CertificateStack (us-east-1)</li>
+                <li>Create DynamoDBStack</li>
+                <li>Create SesStack with domain identity</li>
+                <li>Deploy and verify certificates + SES</li>
+            </ul>
+        </div>
+
+        <div class="phase">
+            <h3><span class="phase-number">2</span> API &amp; Lambda Development</h3>
+            <ul class="checklist">
+                <li>Create SendEmails Lambda with SES integration</li>
+                <li>Create GetUnsubscribe Lambda</li>
+                <li>Create PostUnsubscribe Lambda</li>
+                <li>Create ApiStack with HTTP API and routes</li>
+                <li>Add Cognito authorizer for protected routes</li>
+                <li>Deploy and test endpoints via curl</li>
+            </ul>
+        </div>
+
+        <div class="phase">
+            <h3><span class="phase-number">3</span> CloudFront &amp; Cognito</h3>
+            <ul class="checklist">
+                <li>Create CognitoStack with User Pool</li>
+                <li>Create CloudfrontStack with S3 bucket</li>
+                <li>Configure CloudFront behaviors (API vs S3)</li>
+                <li>Deploy and verify domain works</li>
+            </ul>
+        </div>
+
+        <div class="phase">
+            <h3><span class="phase-number">4</span> Web Application</h3>
+            <ul class="checklist">
+                <li>Initialize React app with TypeScript</li>
+                <li>Set up Cognito authentication (react-oidc-context)</li>
+                <li>Build SendEmails page (authenticated)</li>
+                <li>Build Unsubscribe pages (public)</li>
+                <li>Create deployment scripts</li>
+                <li>Deploy and test end-to-end</li>
+            </ul>
+        </div>
+
+        <div class="phase">
+            <h3><span class="phase-number">5</span> Testing &amp; Validation</h3>
+            <ul class="checklist">
+                <li>Send test batch of 10 emails</li>
+                <li>Verify headers in received emails</li>
+                <li>Test one-click unsubscribe (Gmail)</li>
+                <li>Test manual unsubscribe flow</li>
+                <li>Verify DynamoDB records</li>
+            </ul>
+        </div>
+
+        <h2>Questions / Decisions</h2>
+
+        <div class="alert alert-info">
+            <strong>Please confirm before proceeding:</strong>
+            <ol style="margin-top: 0.5rem; margin-bottom: 0;">
+                <li><strong>SES Sending Domain:</strong> Use <code>sandbox.nakomis.com</code> for sending (since hosted zone is in this account)? Emails would come from <code>noreply@sandbox.nakomis.com</code>.</li>
+                <li><strong>Region:</strong> Use <code>eu-west-2</code> (London) to match sandboxsite?</li>
+                <li><strong>CloudFront + API Gateway:</strong> I'm proposing to use CloudFront in front of everything with path-based routing to API Gateway for <code>/api/*</code>. Alternative: separate domains (api.unsubscribe.sandbox.nakomis.com). Which do you prefer?</li>
+            </ol>
+        </div>
+
+        <h2>Estimated Resources &amp; Costs</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Resource</th>
+                    <th>Type</th>
+                    <th>Cost Estimate</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>S3 Bucket</td>
+                    <td>Storage</td>
+                    <td>~$0.02/month</td>
+                </tr>
+                <tr>
+                    <td>CloudFront</td>
+                    <td>CDN</td>
+                    <td>Free tier</td>
+                </tr>
+                <tr>
+                    <td>API Gateway</td>
+                    <td>HTTP API</td>
+                    <td>~$1/million requests</td>
+                </tr>
+                <tr>
+                    <td>Lambda</td>
+                    <td>Compute</td>
+                    <td>Free tier</td>
+                </tr>
+                <tr>
+                    <td>DynamoDB</td>
+                    <td>Database</td>
+                    <td>Free tier</td>
+                </tr>
+                <tr>
+                    <td>Cognito</td>
+                    <td>Auth</td>
+                    <td>Free (&lt;50k MAU)</td>
+                </tr>
+                <tr>
+                    <td>SES</td>
+                    <td>Email</td>
+                    <td>$0.10/1000 emails</td>
+                </tr>
+                <tr>
+                    <td>ACM Certificates</td>
+                    <td>SSL</td>
+                    <td>Free</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="alert alert-success" style="margin-top: 2rem;">
+            <strong>Ready to proceed?</strong> Once you've reviewed this plan and confirmed the decisions above, let me know and I'll start implementing Phase 1.
+        </div>
+    </div>
+</body>
+</html>
