@@ -1,0 +1,11 @@
+{
+    "env": "ENV_PLACEHOLDER",
+    "region": "REGION_PLACEHOLDER",
+    "authority": "AUTHORITY_PLACEHOLDER",
+    "userPoolId": "USER_POOL_ID_PLACEHOLDER",
+    "userPoolClientId": "USER_POOL_CLIENT_ID_PLACEHOLDER",
+    "redirectUri": "REDIRECT_URI_PLACEHOLDER",
+    "logoutUri": "LOGOUT_URI_PLACEHOLDER",
+    "cognitoDomain": "COGNITO_DOMAIN_PLACEHOLDER",
+    "apiUrl": "API_URL_PLACEHOLDER"
+}
