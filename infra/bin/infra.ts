@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
+import * as fs from 'fs';
 import { CertificateStack } from '../lib/certificate-stack';
 import { CloudfrontStack } from '../lib/cloudfront-stack';
 import { CognitoStack } from '../lib/cognito-stack';
@@ -65,3 +66,7 @@ cognitoStack.addDependency(certificateStack);
 apiStack.addDependency(cognitoStack);
 apiStack.addDependency(dynamoDBStack);
 cloudfrontStack.addDependency(certificateStack);
+
+const { version: infraVersion } = JSON.parse(fs.readFileSync('./version.json', 'utf-8'));
+cdk.Tags.of(app).add('MH-Project', 'email-unsubscribe');
+cdk.Tags.of(app).add('MH-Version', infraVersion);
