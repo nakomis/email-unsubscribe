@@ -46,7 +46,7 @@ export class ApiStack extends cdk.Stack {
             functionName: 'unsubscribe-send-emails',
             entry: path.join(__dirname, '../lambda/send-emails/src/handler.ts'),
             handler: 'handler',
-            runtime: lambda.Runtime.NODEJS_20_X,
+            runtime: lambda.Runtime.NODEJS_22_X,
             timeout: cdk.Duration.seconds(60),
             memorySize: 256,
             environment: {
@@ -74,7 +74,7 @@ export class ApiStack extends cdk.Stack {
             functionName: 'unsubscribe-get',
             entry: path.join(__dirname, '../lambda/get-unsubscribe/src/handler.ts'),
             handler: 'handler',
-            runtime: lambda.Runtime.NODEJS_20_X,
+            runtime: lambda.Runtime.NODEJS_22_X,
             timeout: cdk.Duration.seconds(10),
             memorySize: 128,
             environment: {
@@ -95,7 +95,7 @@ export class ApiStack extends cdk.Stack {
             functionName: 'unsubscribe-post',
             entry: path.join(__dirname, '../lambda/post-unsubscribe/src/handler.ts'),
             handler: 'handler',
-            runtime: lambda.Runtime.NODEJS_20_X,
+            runtime: lambda.Runtime.NODEJS_22_X,
             timeout: cdk.Duration.seconds(10),
             memorySize: 128,
             environment: {
